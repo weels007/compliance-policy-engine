@@ -220,6 +220,13 @@ You MUST return exactly {expected_count} verdicts, one per rule.
         if len(verdicts) >= MAX_VERDICTS:
             break
 
+    # ── Enforce exact verdict count = rule count ─────────────────────────
+    # Every policy rule must appear exactly once — validators bind on this.
+    if len(verdicts) != expected_count:
+        raise gl.vm.UserError(
+            f"{ERROR_EXPECTED} Verdict count {len(verdicts)} != rule count {expected_count}"
+        )
+
     compliant = bool(out.get("compliant", False))
     reasoning = str(out.get("reasoning", ""))[:500]
 
@@ -248,19 +255,39 @@ def _compute_score(verdicts: list) -> dict:
     }
 
 
+def _canonical_verdicts(verdicts: list, expected_rule_count: int) -> tuple:
+    """Build a canonical ordered (rule_id, status) mapping for consensus.
+
+    Verdicts are sorted by rule_id so both leader and validator produce the
+    same deterministic ordering. Every policy rule must appear exactly once.
+    """
+    if len(verdicts) != expected_rule_count:
+        raise gl.vm.UserError(
+            f"[EXPECTED] Verdict count {len(verdicts)} != rule count {expected_rule_count}"
+        )
+    sorted_verdicts = sorted(verdicts, key=lambda v: v["rule_id"])
+    return tuple((v["rule_id"], v["status"]) for v in sorted_verdicts)
+
+
 def _decision_fields(result: dict, expected_rule_count: int) -> tuple:
     """Extract the settlement fields that must match for consensus.
 
-    Includes rule count to bind the evaluation to the stored policy rules —
-    validators verify the LLM evaluated ALL rules, not just the boolean.
+    Includes:
+      - compliant (bool)
+      - rules_passed, rules_failed (counts)
+      - total_rules (must equal expected_rule_count)
+      - canonical ordered (rule_id, status) mapping — validators must agree
+        on WHICH rules passed/failed, not just the aggregate counts
     """
     score = _compute_score(result["verdicts"])
+    canonical = _canonical_verdicts(result["verdicts"], expected_rule_count)
     return (
         bool(result["compliant"]),
         int(score["rules_passed"]),
         int(score["rules_failed"]),
         int(score["total_rules"]),
         int(expected_rule_count),
+        canonical,
     )
 
 
