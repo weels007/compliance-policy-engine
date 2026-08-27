@@ -6,7 +6,7 @@
   <p align="center">
     <img src="https://img.shields.io/badge/Built%20on-GenLayer-6366f1?style=for-the-badge&logo=genlayer" alt="GenLayer">
     <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-    <img src="https://img.shields.io/badge/tests-53%20passed-16a34a?style=for-the-badge" alt="Tests">
+    <img src="https://img.shields.io/badge/tests-56%20passed-16a34a?style=for-the-badge" alt="Tests">
     <img src="https://img.shields.io/badge/E2E-verified-16a34a?style=for-the-badge" alt="E2E Verified">
   </p>
 </p>
@@ -37,13 +37,13 @@ You define rules like *"No profanity"*, *"Must cite sources"*, *"Under 500 words
 <table>
 <tr>
   <td><strong>Address</strong></td>
-  <td><code>0xa77aDB26D2A77Ac59D2c258C30715e8A084f0E2C</code></td>
+  <td><code>0xddD4330d1e717d87AAce7e0AB4168Fe0fF45c2e5</code></td>
 </tr>
 <tr>
   <td><strong>Explorer</strong></td>
   <td>
-    <a href="https://explorer-studio.genlayer.com/address/0xa77aDB26D2A77Ac59D2c258C30715e8A084f0E2C">
-      🔗 explorer-studio.genlayer.com/address/0xa77aDB26...
+    <a href="https://explorer-studio.genlayer.com/address/0xddD4330d1e717d87AAce7e0AB4168Fe0fF45c2e5">
+      🔗 explorer-studio.genlayer.com/address/0xddD4330...
     </a>
   </td>
 </tr>
@@ -141,7 +141,7 @@ The consensus settlement tuple is:
 
 ```python
 (
-    compliant: bool,
+    compliant: bool,               # DERIVED from verdicts, not from LLM
     rules_passed: int,
     rules_failed: int,
     total_rules: int,
@@ -176,6 +176,8 @@ Other contracts and UIs can enumerate rules, track per-rule pass rates, and buil
 | **Spam / Flooding** | 60s cooldown between evaluations per evaluator per policy |
 | **Double Submit** | Same evaluator cannot re-evaluate the same URL against the same policy |
 | **LLM Rule Skipping** | Settlement tuple includes `total_rules` + canonical (rule_id, status) mapping — validators verify all rules evaluated and agree on each rule's verdict |
+| **LLM Compliant Mismatch** | `compliant` is derived from actual verdict statuses, not trusted from LLM output — mathematically consistent |
+| **Eval ID Overwrite** | `policy_eval_count` preserved across delete+recreate — historical evaluations never overwritten |
 | **Challenge Window** | 24h to challenge, after which evaluation is final |
 | **Owner-Only Admin** | Only policy owner can update rules, toggle active, delete, or challenge |
 | **Prompt Injection** | Content marked as untrusted data; LLM told to never follow instructions inside it |
@@ -218,7 +220,7 @@ Other contracts and UIs can enumerate rules, track per-rule pass rates, and buil
 
 ```bash
 genvm-lint check contracts/compliance_policy_engine.py    # Lint: 3/3 checks
-pytest tests/test_compliance_policy_engine.py -v -s       # Tests: 53/53 pass
+pytest tests/test_compliance_policy_engine.py -v -s       # Tests: 56/56 pass
 ```
 
 ### E2E on Studionet (real chain)
@@ -250,7 +252,7 @@ CompliancePolicyEngine/
 │   └── compliance_policy_engine.py    # The contract (single file)
 ├── tests/
 │   ├── conftest.py                    # Windows workaround
-│   └── test_compliance_policy_engine.py  # 53 direct-mode tests
+│   └── test_compliance_policy_engine.py  # 56 direct-mode tests
 ├── scripts/
 │   └── test-studionet-e2e.cjs        # E2E test on real chain
 ├── wallet/
