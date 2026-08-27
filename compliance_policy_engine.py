@@ -227,7 +227,13 @@ You MUST return exactly {expected_count} verdicts, one per rule.
             f"{ERROR_EXPECTED} Verdict count {len(verdicts)} != rule count {expected_count}"
         )
 
-    compliant = bool(out.get("compliant", False))
+    # ── Derive compliant FROM verdicts, not from LLM ─────────────────────
+    # The LLM's "compliant" field is ignored — we compute it from the
+    # actual verdict statuses to ensure mathematical consistency.
+    evaluated = [v for v in verdicts if v["status"] != "SKIPPED"]
+    compliant = len(evaluated) > 0 and all(
+        v["status"] == "SATISFIED" for v in evaluated
+    )
     reasoning = str(out.get("reasoning", ""))[:500]
 
     return {
@@ -492,8 +498,9 @@ class CompliancePolicyEngine(gl.Contract):
     def delete_policy(self, policy_id: str) -> None:
         """Delete a policy and all its rules (owner only).
 
-        Resets aggregate stats so deleted policies don't pollute contract-level
-        statistics. Evaluations and verdicts are preserved for audit trail.
+        Evaluations and verdicts are preserved for audit trail.
+        The eval counter is intentionally kept so that recreating the same
+        policy_id never reuses old eval IDs — historical data is protected.
         """
         if policy_id not in self.policies:
             raise gl.vm.UserError("Policy not found")
@@ -507,9 +514,9 @@ class CompliancePolicyEngine(gl.Contract):
             if rule_id in self.rules:
                 del self.rules[rule_id]
 
-        # Remove eval counter and cooldown entries
-        if policy_id in self.policy_eval_count:
-            del self.policy_eval_count[policy_id]
+        # NOTE: Do NOT delete policy_eval_count[policy_id] — this preserves
+        # the eval counter so recreating the same policy_id continues from
+        # where it left off, preventing eval ID collisions.
 
         del self.policies[policy_id]
 
