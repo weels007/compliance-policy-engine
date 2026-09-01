@@ -227,6 +227,28 @@ You MUST return exactly {expected_count} verdicts, one per rule.
             f"{ERROR_EXPECTED} Verdict count {len(verdicts)} != rule count {expected_count}"
         )
 
+    # ── Enforce unique rule IDs that exactly match stored rules ─────────
+    # Build the set of expected rule titles from the policy's stored rules.
+    # Each verdict's rule_id must be unique AND correspond to a stored rule.
+    # This prevents the LLM from duplicating one rule and omitting another
+    # while still passing the count check.
+    expected_titles = sorted([r["title"] for r in rules_list])
+    seen_ids = set()
+    verdict_ids = []
+    for v in verdicts:
+        rid = v["rule_id"]
+        if rid in seen_ids:
+            raise gl.vm.UserError(
+                f"{ERROR_EXPECTED} Duplicate rule_id in verdicts: '{rid}'"
+            )
+        seen_ids.add(rid)
+        verdict_ids.append(rid)
+    verdict_ids_sorted = sorted(verdict_ids)
+    if verdict_ids_sorted != expected_titles:
+        raise gl.vm.UserError(
+            f"{ERROR_EXPECTED} Verdict rule_ids do not match stored rules."
+        )
+
     # ── Derive compliant FROM verdicts, not from LLM ─────────────────────
     # The LLM's "compliant" field is ignored — we compute it from the
     # actual verdict statuses to ensure mathematical consistency.
@@ -265,12 +287,21 @@ def _canonical_verdicts(verdicts: list, expected_rule_count: int) -> tuple:
     """Build a canonical ordered (rule_id, status) mapping for consensus.
 
     Verdicts are sorted by rule_id so both leader and validator produce the
-    same deterministic ordering. Every policy rule must appear exactly once.
+    same deterministic ordering. Every policy rule must appear exactly once,
+    and every rule_id must be unique.
     """
     if len(verdicts) != expected_rule_count:
         raise gl.vm.UserError(
             f"[EXPECTED] Verdict count {len(verdicts)} != rule count {expected_rule_count}"
         )
+    seen = set()
+    for v in verdicts:
+        rid = v["rule_id"]
+        if rid in seen:
+            raise gl.vm.UserError(
+                f"[EXPECTED] Duplicate rule_id in verdicts: '{rid}'"
+            )
+        seen.add(rid)
     sorted_verdicts = sorted(verdicts, key=lambda v: v["rule_id"])
     return tuple((v["rule_id"], v["status"]) for v in sorted_verdicts)
 
