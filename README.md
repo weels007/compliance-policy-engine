@@ -6,7 +6,7 @@
   <p align="center">
     <img src="https://img.shields.io/badge/Built%20on-GenLayer-6366f1?style=for-the-badge&logo=genlayer" alt="GenLayer">
     <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-    <img src="https://img.shields.io/badge/tests-56%20passed-16a34a?style=for-the-badge" alt="Tests">
+    <img src="https://img.shields.io/badge/tests-60%20passed-16a34a?style=for-the-badge" alt="Tests">
     <img src="https://img.shields.io/badge/E2E-verified-16a34a?style=for-the-badge" alt="E2E Verified">
   </p>
 </p>
@@ -37,13 +37,13 @@ You define rules like *"No profanity"*, *"Must cite sources"*, *"Under 500 words
 <table>
 <tr>
   <td><strong>Address</strong></td>
-  <td><code>0xddD4330d1e717d87AAce7e0AB4168Fe0fF45c2e5</code></td>
+  <td><code>0x0e57C2D9Ab0029BC09075C8204bade19312ca8A2</code></td>
 </tr>
 <tr>
   <td><strong>Explorer</strong></td>
   <td>
-    <a href="https://explorer-studio.genlayer.com/address/0xddD4330d1e717d87AAce7e0AB4168Fe0fF45c2e5">
-      🔗 explorer-studio.genlayer.com/address/0xddD4330...
+    <a href="https://explorer-studio.genlayer.com/address/0x0e57C2D9Ab0029BC09075C8204bade19312ca8A2">
+      🔗 explorer-studio.genlayer.com/address/0x0e57C2D...
     </a>
   </td>
 </tr>
@@ -53,7 +53,7 @@ You define rules like *"No profanity"*, *"Must cite sources"*, *"Under 500 words
 </tr>
 <tr>
   <td><strong>Deployer</strong></td>
-  <td><code>0xD0B8fFA6ea2572D2a8F16512CAbB21eCFe6ea48b</code></td>
+  <td><code>0x689759bb926E032EAfb1eE986eD7A98C1496ec1c</code> (wallet <code>cpe-v2</code>)</td>
 </tr>
 <tr>
   <td><strong>Consensus</strong></td>
@@ -152,9 +152,9 @@ The consensus settlement tuple is:
 
 Validators must agree on **exactly which rules passed/failed** — the canonical sorted (rule_id, status) mapping ensures both leader and validator produce the same deterministic ordering. If one says "Rule A: SATISFIED" and the other says "Rule A: VIOLATED", consensus fails.
 
-### 3. Rule-Count Binding
+### 3. Rule-Count Binding + Rule ID Uniqueness
 
-Validators verify the LLM evaluated **ALL stored rules**. If a policy has 3 rules but the LLM only returned 2 verdicts, consensus fails. This prevents the LLM from silently skipping rules.
+Validators verify the LLM evaluated **ALL stored rules**. If a policy has 3 rules but the LLM only returned 2 verdicts, consensus fails. Additionally, every verdict's `rule_id` must be **unique** and **match exactly one stored rule title**. This prevents the LLM from duplicating one rule and omitting another while still passing the count check.
 
 ### 4. First-Class Rules as Storage Objects
 
@@ -175,7 +175,7 @@ Other contracts and UIs can enumerate rules, track per-rule pass rates, and buil
 |--------|-----------|
 | **Spam / Flooding** | 60s cooldown between evaluations per evaluator per policy |
 | **Double Submit** | Same evaluator cannot re-evaluate the same URL against the same policy |
-| **LLM Rule Skipping** | Settlement tuple includes `total_rules` + canonical (rule_id, status) mapping — validators verify all rules evaluated and agree on each rule's verdict |
+| **LLM Rule Skipping** | Settlement tuple includes `total_rules` + canonical (rule_id, status) mapping — validators verify all rules evaluated, each rule_id is unique and matches a stored rule, and agree on each rule's verdict |
 | **LLM Compliant Mismatch** | `compliant` is derived from actual verdict statuses, not trusted from LLM output — mathematically consistent |
 | **Eval ID Overwrite** | `policy_eval_count` preserved across delete+recreate — historical evaluations never overwritten |
 | **Challenge Window** | 24h to challenge, after which evaluation is final |
@@ -216,11 +216,11 @@ Other contracts and UIs can enumerate rules, track per-rule pass rates, and buil
 
 ## 🧪 Testing
 
-### Direct Mode (52 tests)
+### Direct Mode (60 tests)
 
 ```bash
 genvm-lint check contracts/compliance_policy_engine.py    # Lint: 3/3 checks
-pytest tests/test_compliance_policy_engine.py -v -s       # Tests: 56/56 pass
+pytest tests/test_compliance_policy_engine.py -v -s       # Tests: 60/60 pass
 ```
 
 ### E2E on Studionet (real chain)
@@ -258,6 +258,9 @@ CompliancePolicyEngine/
 ├── wallet/
 │   └── cpe-deploy.json               # Deployer wallet backup
 ├── gltest.config.yaml                 # Test config
+├── notes/
+│   ├── portal-submission.md          # Portal submission notes
+│   └── resubmission-response.md      # Steward response
 └── README.md                          # This document
 ```
 
