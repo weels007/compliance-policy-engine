@@ -6,7 +6,7 @@
   <p align="center">
     <img src="https://img.shields.io/badge/Built%20on-GenLayer-6366f1?style=for-the-badge&logo=genlayer" alt="GenLayer">
     <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-    <img src="https://img.shields.io/badge/tests-60%20passed-16a34a?style=for-the-badge" alt="Tests">
+    <img src="https://img.shields.io/badge/tests-63%20passed-16a34a?style=for-the-badge" alt="Tests">
     <img src="https://img.shields.io/badge/E2E-verified-16a34a?style=for-the-badge" alt="E2E Verified">
   </p>
 </p>
@@ -37,13 +37,13 @@ You define rules like *"No profanity"*, *"Must cite sources"*, *"Under 500 words
 <table>
 <tr>
   <td><strong>Address</strong></td>
-  <td><code>0x0e57C2D9Ab0029BC09075C8204bade19312ca8A2</code></td>
+  <td><code>0x72a1B44dba9E86Ce7232b5e3AbB76f4a2DA8FC21</code></td>
 </tr>
 <tr>
   <td><strong>Explorer</strong></td>
   <td>
-    <a href="https://explorer-studio.genlayer.com/address/0x0e57C2D9Ab0029BC09075C8204bade19312ca8A2">
-      🔗 explorer-studio.genlayer.com/address/0x0e57C2D...
+    <a href="https://explorer-studio.genlayer.com/address/0x72a1B44dba9E86Ce7232b5e3AbB76f4a2DA8FC21">
+      🔗 explorer-studio.genlayer.com/address/0x72a1B44d...
     </a>
   </td>
 </tr>
@@ -182,6 +182,7 @@ Other contracts and UIs can enumerate rules, track per-rule pass rates, and buil
 | **Owner-Only Admin** | Only policy owner can update rules, toggle active, delete, or challenge |
 | **Prompt Injection** | Content marked as untrusted data; LLM told to never follow instructions inside it |
 | **Atomic Updates** | `update_rule` validates ALL inputs before applying ANY mutation |
+| **Title Uniqueness** | Rule titles must be unique within a policy — enforced at creation and update |
 | **Error Classification** | `[EXPECTED]`, `[EXTERNAL]`, `[TRANSIENT]`, `[LLM]` prefixes for validator consensus on failures |
 
 ---
@@ -216,7 +217,7 @@ Other contracts and UIs can enumerate rules, track per-rule pass rates, and buil
 
 ## 🧪 Testing
 
-### Direct Mode (60 tests)
+### Direct Mode (63 tests)
 
 ```bash
 genvm-lint check contracts/compliance_policy_engine.py    # Lint: 3/3 checks
@@ -229,13 +230,15 @@ All methods verified end-to-end with real validator consensus:
 
 | Method | Result |
 |--------|--------|
-| `create_policy` | ✅ MAJORITY_AGREE — 2 rules stored |
+| `create_policy` | ✅ MAJORITY_AGREE — 3 rules stored |
 | `get_policy` / `get_rule` / `get_policy_rules` | ✅ Correct data returned |
 | `update_rule` | ✅ Rule updated and verified |
 | `set_policy_active` | ✅ Deactivate/reactivate works |
 | `evaluate_content` | ✅ **Consensus call** — LLM evaluated, per-rule verdicts stored |
-| `get_evaluation` | ✅ `compliant:true`, `rules_passed:2`, `pass_rate_pct:100` |
+| `get_evaluation` | ✅ `compliant:true`, `rules_passed:3`, `pass_rate_pct:100` |
 | `double submit` | ✅ REJECTED — `This URL has already been evaluated` |
+| `duplicate rule title (create)` | ✅ REJECTED — `Duplicate rule title` |
+| `duplicate rule title (update)` | ✅ REJECTED — `Duplicate rule title` |
 | `check_duplicate` / `check_cooldown` | ✅ Correct detection |
 | `challenge_evaluation` | ✅ `challenged:true`, reason stored, avg drops to 0 |
 | `double challenge` | ✅ REJECTED — `Evaluation already challenged` |
@@ -252,7 +255,7 @@ CompliancePolicyEngine/
 │   └── compliance_policy_engine.py    # The contract (single file)
 ├── tests/
 │   ├── conftest.py                    # Windows workaround
-│   └── test_compliance_policy_engine.py  # 56 direct-mode tests
+│   └── test_compliance_policy_engine.py  # 63 direct-mode tests
 ├── scripts/
 │   └── test-studionet-e2e.cjs        # E2E test on real chain
 ├── wallet/
@@ -260,7 +263,8 @@ CompliancePolicyEngine/
 ├── gltest.config.yaml                 # Test config
 ├── notes/
 │   ├── portal-submission.md          # Portal submission notes
-│   └── resubmission-response.md      # Steward response
+│   ├── resubmission-response.md      # Steward response
+│   └── steward-fix-v3.md             # Duplicate title fix response
 └── README.md                          # This document
 ```
 
