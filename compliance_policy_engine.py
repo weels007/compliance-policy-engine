@@ -435,6 +435,7 @@ class CompliancePolicyEngine(gl.Contract):
 
         # Validate all rules BEFORE storing the policy (atomic creation)
         validated_rules = []
+        seen_titles = set()
         for i in range(len(rule_titles)):
             title_i = rule_titles[i]
             desc_i = rule_descriptions[i]
@@ -443,6 +444,11 @@ class CompliancePolicyEngine(gl.Contract):
                 raise gl.vm.UserError(
                     f"Rule {i + 1} title must be 1-120 characters"
                 )
+            if title_i in seen_titles:
+                raise gl.vm.UserError(
+                    f"Duplicate rule title: '{title_i}' — titles must be unique"
+                )
+            seen_titles.add(title_i)
             if len(desc_i) > 1000:
                 raise gl.vm.UserError(
                     f"Rule {i + 1} description must be at most 1000 characters"
@@ -508,6 +514,18 @@ class CompliancePolicyEngine(gl.Contract):
             raise gl.vm.UserError("Rule description must be 1-1000 characters")
         if not category or len(category) > 64:
             raise gl.vm.UserError("Rule category must be 1-64 characters")
+
+        # Check title uniqueness against other rules in the same policy
+        for i in range(int(policy.rule_count)):
+            other_id = f"{policy_id}:{i}"
+            if other_id == rule_id:
+                continue  # skip self
+            if other_id in self.rules:
+                other = self.rules[other_id]
+                if other.title == title:
+                    raise gl.vm.UserError(
+                        f"Duplicate rule title: '{title}' — titles must be unique"
+                    )
 
         # All validation passed — apply atomically
         rule = self.rules[rule_id]
